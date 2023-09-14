@@ -12,4 +12,4 @@ bot = MyBot()
 bot.start()
 
 if __name__ == '__main__':
-    print('PyCharm')
+    
