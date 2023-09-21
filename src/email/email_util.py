@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import poplib
-
+import re
 
 class EmailUtil:
     def __init__(self, username, password):
@@ -18,7 +18,7 @@ class EmailUtil:
             return pop_server
         except poplib.error_proto as e:
             print('登录失败:', e)
-            return None
+            raise Exception('登录失败')
 
     def get_email_subjects(self):
         pop_server = self.login()
@@ -50,6 +50,19 @@ class EmailUtil:
         else:
             return None
 
+    def filter_subjects(self, regex):
+        if not self.email_dict:
+            raise Exception('还未获取邮件主题')
+
+        try:
+            filtered_dict = {}
+            for subject in self.email_dict:
+                if re.search(regex, subject):
+                    filtered_dict[subject] = self.email_dict[subject]
+            return filtered_dict
+        except re.error as e:
+            raise Exception('正则表达式错误')
+
 
 if __name__ == '__main__':
     # 授权码 ZWUXENDBVAWOHIZI
@@ -57,3 +70,5 @@ if __name__ == '__main__':
     e.get_email_subjects()
     content = e.get_content_by_subject('test')
     print(content)
+    filtered_dict = e.filter_subjects(r'^test\d$')
+    print(filtered_dict)
