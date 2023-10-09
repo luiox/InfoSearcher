@@ -1,8 +1,39 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import base64
+import email
 import poplib
 import re
+from email import parser
+
+
+# 通过邮件内容找到转发邮件的原始邮件
+def find_original_email(message):
+    if message.is_multipart():
+        for part in message.get_payload():
+            if part.get_content_type() == 'message/rfc822':
+                # 找到转发的原始邮件
+                original_email = part.get_payload(decode=True)
+                return original_email
+    else:
+        return None
+
+
+# 传入一个message对象，判断是否是转发的邮件
+def is_forwarded_email(message):
+    subject = message['Subject']
+    sender = message['From']
+
+    # 判断邮件主题中是否包含转发标识
+    if subject and ('FW:' in subject.upper() or 'FWD:' in subject.upper() or '转发：' in subject):
+        return True
+
+    # 判断发送者是否为常见的邮件转发服务
+    if sender and ('FORWARD' in sender.upper() or 'FWD' in sender.upper()):
+        return True
+
+    return False
+
 
 class EmailUtil:
     def __init__(self, username, password):
@@ -70,7 +101,17 @@ if __name__ == '__main__':
     # 授权码 ZWUXENDBVAWOHIZI
     e = EmailUtil('canrad7@163.com', 'ZWUXENDBVAWOHIZI')
     e.get_email_subjects()
-    content = e.get_content_by_subject('test')
-    print(content)
     filtered_dict = e.filter_subjects('账单')
-    print(filtered_dict)
+    # 遍历获取的字典
+    for subject, content in filtered_dict.items():
+        print("主题:", subject)
+        print("内容:", content)
+        # 将邮件内容转换为message对象
+        message = parser.Parser().parsestr(content)
+        if is_forwarded_email(message):
+            print("转发")
+            original_content = find_original_email(message)
+            original_message = email.message_from_bytes(original_content)
+            print(original_message)
+        else:
+            print("不是转发")
