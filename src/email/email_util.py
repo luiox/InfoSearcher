@@ -52,17 +52,17 @@ class EmailUtil:
         else:
             return None
 
-    def filter_subjects(self, regex):
+    def filter_subjects(self, keyword):
         if not self.email_dict:
             raise Exception('还未获取邮件主题')
 
         try:
             filtered_dict = {}
-            for subject in self.email_dict:
-                if re.search(regex, subject):
-                    filtered_dict[subject] = self.email_dict[subject]
+            for subject, content in self.email_dict.items():
+                if keyword in subject:
+                    filtered_dict[subject] = content
             return filtered_dict
-        except re.error as e:
+        except re.error:
             raise Exception('正则表达式错误')
 
 
@@ -72,5 +72,5 @@ if __name__ == '__main__':
     e.get_email_subjects()
     content = e.get_content_by_subject('test')
     print(content)
-    filtered_dict = e.filter_subjects(r'^账单\d$')
+    filtered_dict = e.filter_subjects('账单')
     print(filtered_dict)
