@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import base64
 import poplib
 import re
 
@@ -34,6 +35,7 @@ class EmailUtil:
                 for line in msg_lines:
                     if line.startswith(b'Subject:'):
                         subject = line.decode('utf-8')
+                        subject = base64.b64decode(subject.replace('Subject: =?UTF-8?B?', '')).decode('utf-8')
                     elif line.strip() != b'':  # 这里假设非空行即为内容
                         content += line.decode('utf-8')
                 self.email_dict[subject] = content
@@ -70,5 +72,5 @@ if __name__ == '__main__':
     e.get_email_subjects()
     content = e.get_content_by_subject('test')
     print(content)
-    filtered_dict = e.filter_subjects(r'^test\d$')
+    filtered_dict = e.filter_subjects(r'^账单\d$')
     print(filtered_dict)
