@@ -4,8 +4,10 @@ import base64
 import email
 import poplib
 import re
+import eml_analyzer
 from email import parser
 from email.header import decode_header
+
 
 # 对邮件字符串根据不同编码来解码
 def email_string_decode(str):
@@ -68,6 +70,30 @@ def is_forwarded_email(message):
 
     return False
 
+    # 需求：消息标题、附件名称（存在header中）都是以字节为单位进行传输的，中文内容需要解码
+    # 功能：对header进行解码
+
+
+def decode(header: str):
+    value, charset = email.header.decode_header(header)[0]
+    if charset:
+        return str(value, encoding=charset)
+    else:
+        return value
+
+
+# 功能：下载某一个消息的所有附件
+def download_attachment(msg):
+    subject = decode(msg.get('Subject'))  # 获取消息标题
+    for part in msg.walk():  # 遍历整个msg的内容
+        if part.get_content_disposition() == 'attachment':
+            attachment_name = decode(part.get_filename())  # 获取附件名称
+            attachment_content = part.get_payload(decode=True)  # 下载附件
+            attachment_file = open('./' + attachment_name, 'wb')  # 在指定目录下创建文件，注意二进制文件需要用wb模式打开
+            attachment_file.write(attachment_content)  # 将附件保存到本地
+            attachment_file.close()
+    print('Done………………', subject)
+
 
 class EmailUtil:
     def __init__(self, username, password):
@@ -88,6 +114,17 @@ class EmailUtil:
             print('登录失败:', e)
             raise Exception('登录失败')
 
+    def process_email_parts(self, part):
+        if part.get_content_type() == 'text/plain':
+            return part.get_payload(decode=True).decode('utf-8')
+        elif part.get_content_type().startswith('multipart/'):
+            content = ''
+            for subpart in part.get_payload():
+                content += self.process_email_parts(subpart)
+            return content
+        else:
+            return ''
+
     # 获取所有邮件的原始数据
     def get_raw_emails(self):
         pop_server = self.login()
@@ -98,15 +135,19 @@ class EmailUtil:
             num_messages = len(pop_server.list()[1])
             for i in range(num_messages):
                 msg_lines = pop_server.top(i + 1, 0)[1]
+                print(msg_lines)
                 raw_email = b'\r\n'.join(msg_lines).decode('utf-8')
                 msg = email.message_from_string(raw_email)
                 for line in msg_lines:
+                    t = line
                     if line.startswith(b'Subject:'):
                         subject = line.decode('utf-8')
-                        subject = base64.b64decode(subject.replace('Subject: =?UTF-8?B?', '')).decode('utf-8')
-                        self.raw_email_dict[subject] = raw_email  # 将邮件主题和原始内容存入字典
+                        # subject = base64.b64decode(subject.replace('Subject: =?UTF-8?B?', '')).decode('utf-8')
+                        content = self.process_email_parts(msg)
+                        self.raw_email_dict[subject] = msg
+
             for subject, message in self.raw_email_dict.items():
-                print(subject)
+                print("主题:" + subject)
                 print(message)
         except poplib.error_proto as e:
             print('获取邮件失败:', e)
@@ -152,7 +193,7 @@ class EmailUtil:
                 for line in msg_lines:
                     if line.startswith(b'Subject:'):
                         subject = line.decode('utf-8')
-                        subject = base64.b64decode(subject.replace('Subject: =?UTF-8?B?', '')).decode('utf-8')
+                        # subject = base64.b64decode(subject.replace('Subject: =?UTF-8?B?', '')).decode('utf-8')
                 # subject = msg.get('Subject')
                 content = ''
                 boundary = None  # 初始化边界变量
@@ -212,3 +253,4 @@ if __name__ == '__main__':
             print(original_content)
         else:
             print("不是转发")
+            ea = eml_analyzer()
