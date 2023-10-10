@@ -75,6 +75,7 @@ class EmailUtil:
         self.password = password
         self.email_dict = {}
         self.boundary_dict = {}
+        self.raw_email_dict = {}
 
     def login(self):
         try:
@@ -86,6 +87,31 @@ class EmailUtil:
         except poplib.error_proto as e:
             print('登录失败:', e)
             raise Exception('登录失败')
+
+    # 获取所有邮件的原始数据
+    def get_raw_emails(self):
+        pop_server = self.login()
+        if not pop_server:
+            return
+
+        try:
+            num_messages = len(pop_server.list()[1])
+            for i in range(num_messages):
+                msg_lines = pop_server.top(i + 1, 0)[1]
+                raw_email = b'\r\n'.join(msg_lines).decode('utf-8')
+                msg = email.message_from_string(raw_email)
+                for line in msg_lines:
+                    if line.startswith(b'Subject:'):
+                        subject = line.decode('utf-8')
+                        subject = base64.b64decode(subject.replace('Subject: =?UTF-8?B?', '')).decode('utf-8')
+                        self.raw_email_dict[subject] = raw_email  # 将邮件主题和原始内容存入字典
+            for subject, message in self.raw_email_dict.items():
+                print(subject)
+                print(message)
+        except poplib.error_proto as e:
+            print('获取邮件失败:', e)
+
+        pop_server.quit()
 
     def get_email_subjects(self):
         pop_server = self.login()
@@ -170,6 +196,7 @@ class EmailUtil:
 if __name__ == '__main__':
     # 授权码 ZWUXENDBVAWOHIZI
     e = EmailUtil('canrad7@163.com', 'ZWUXENDBVAWOHIZI')
+    e.get_raw_emails()
     e.get_email_message_object()
     filtered_dict = e.filter_message_by_subjects('账单')
     # 遍历获取的字典
