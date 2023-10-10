@@ -28,7 +28,7 @@ def find_original_email(message):
         if part.get_content_type() == 'text/plain':
             # 获取文本内容
             content = part.get_payload(decode=True).decode('utf-8')
-
+            print(content)
             # 在文本内容中查找原始邮件的引用符号
             index = content.find('-----Original Message-----')
             if index != -1:
@@ -74,6 +74,7 @@ class EmailUtil:
         self.username = username
         self.password = password
         self.email_dict = {}
+        self.boundary_dict = {}
 
     def login(self):
         try:
@@ -128,12 +129,18 @@ class EmailUtil:
                         subject = base64.b64decode(subject.replace('Subject: =?UTF-8?B?', '')).decode('utf-8')
                 # subject = msg.get('Subject')
                 content = ''
+                boundary = None  # 初始化边界变量
                 for part in msg.walk():
                     if part.get_content_type() == 'text/plain':
                         content += part.get_payload(decode=True).decode('utf-8')
+                    elif part.get_content_type().startswith('multipart/'):
+                        # 获取边界标识符
+                        boundary = part.get_boundary()
 
                 self.email_dict[subject] = msg
+                self.boundary_dict[boundary] = content  # 将边界标识符和内容存入字典
                 print(f"邮件{i + 1}的主题：{subject}")
+                print(f"邮件{i + 1}的边界标识符：{content}")
 
         except poplib.error_proto as e:
             print('获取邮件主题失败:', e)
