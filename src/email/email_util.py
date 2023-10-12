@@ -4,7 +4,6 @@ import base64
 import email
 import poplib
 import re
-import eml_analyzer
 from email import parser
 from email.header import decode_header
 
@@ -135,6 +134,7 @@ class EmailUtil:
             num_messages = len(pop_server.list()[1])
             for i in range(num_messages):
                 msg_lines = pop_server.top(i + 1, 0)[1]
+                print("msg_lines:")
                 print(msg_lines)
                 raw_email = b'\r\n'.join(msg_lines).decode('utf-8')
                 msg = email.message_from_string(raw_email)
@@ -253,4 +253,3 @@ if __name__ == '__main__':
             print(original_content)
         else:
             print("不是转发")
-            ea = eml_analyzer()

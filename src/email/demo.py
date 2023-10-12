@@ -12,3 +12,4 @@ for num in data[0].split():
     print('Message %s\n%s\n' % (num, data[0][1]))
 M.close()
 M.logout()
+
