@@ -6,12 +6,13 @@ import poplib
 import re
 from email import parser
 from email.header import decode_header
+from email.parser import Parser
 
 
 # 对邮件字符串根据不同编码来解码
 def email_string_decode(str):
     decode_str = ''
-    for part, charset in decode_header(subject):
+    for part, charset in decode_header(str):
         if charset:
             decode_str += part.decode(charset)
         else:
@@ -94,8 +95,51 @@ def download_attachment(msg):
     print('Done………………', subject)
 
 
+def parse_msg(message):  # 解析邮件内容
+    type = message.get_content_type()
+    maintype = message.get_content_maintype()
+    subtype = message.get_content_subtype()
+    if subtype == 'html':
+        return None
+    if maintype != 'multipart':
+        print('type:', type)
+        print('maintype:', maintype)
+        print('subtype:', subtype)
+
+        boundary = message.get_boundary()
+        print('boundary:', boundary)
+
+    # 如果get_filename()返回非None,表示有附件
+    filename = message.get_filename()
+    if filename:
+        print('********')
+        print('找到1个附件，文件名：', filename)
+        print('********')
+        data = message.get_payload(decode=True)
+        with open(filename, 'wb') as pf:
+            pf.write(data)
+        return filename
+
+    # 如果主类型为text，根据编码方式解析
+    content_charset = message.get_content_charset()
+    print('content_charset:', content_charset)
+    if maintype == 'text':
+        mail_content = message.get_payload(decode=True).strip()
+        try:
+            print('mail_content:\n', mail_content.decode(content_charset))
+        except:
+            print('解码邮件错误')
+
+            # 如果主类型为multipart，递归
+    elif maintype == 'multipart':
+        for message_part in message.get_payload():
+            parse_msg(message_part)
+    return
+
+
 class EmailUtil:
     def __init__(self, username, password):
+        self.pop_server = None
         self.username = username
         self.password = password
         self.email_dict = {}
@@ -104,11 +148,11 @@ class EmailUtil:
 
     def login(self):
         try:
-            pop_server = poplib.POP3_SSL('pop.163.com')
-            pop_server.user(self.username)
-            pop_server.pass_(self.password)
+            self.pop_server = poplib.POP3('pop.163.com')
+            self.pop_server.user(self.username)
+            self.pop_server.pass_(self.password)
             print('登录成功')
-            return pop_server
+            return self.pop_server
         except poplib.error_proto as e:
             print('登录失败:', e)
             raise Exception('登录失败')
@@ -233,23 +277,37 @@ class EmailUtil:
         except re.error:
             raise Exception('正则表达式错误')
 
+    def do(self):
+        mail_list = resp, mails, octets = self.pop_server.list()
+        print(mail_list)
+        print('------------------------------')
+
+        for index, mail in enumerate(mails):
+            resp, lines, octets = self.pop_server.retr(index + 1)
+            msg_content = b'\r'.join(lines).decode('utf-8')
+            msg = Parser().parsestr(msg_content)
+            parse_msg(msg)
+            print('--------------------')
+
 
 if __name__ == '__main__':
     # 授权码 ZWUXENDBVAWOHIZI
     e = EmailUtil('canrad7@163.com', 'ZWUXENDBVAWOHIZI')
-    e.get_raw_emails()
-    e.get_email_message_object()
-    filtered_dict = e.filter_message_by_subjects('账单')
-    # 遍历获取的字典
-    for subject, message in filtered_dict.items():
-        print("主题:", subject)
-        # print("内容:", message.email_dict[subject])
-        if is_forwarded_email(message):
-            print("转发")
-            original_message = find_original_email(message)
-            print("找到原邮件")
-            original_content = ''
-
-            print(original_content)
-        else:
-            print("不是转发")
+    e.login()
+    e.do()
+    # e.get_raw_emails()
+    # e.get_email_message_object()
+    # filtered_dict = e.filter_message_by_subjects('账单')
+    # # 遍历获取的字典
+    # for subject, message in filtered_dict.items():
+    #     print("主题:", subject)
+    #     # print("内容:", message.email_dict[subject])
+    #     if is_forwarded_email(message):
+    #         print("转发")
+    #         original_message = find_original_email(message)
+    #         print("找到原邮件")
+    #         original_content = ''
+    #
+    #         print(original_content)
+    #     else:
+    #         print("不是转发")

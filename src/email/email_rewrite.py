@@ -1,8 +1,11 @@
 from imapclient import IMAPClient
 
+username = 'canrad7@163.com'
+pwd = 'ZWUXENDBVAWOHIZI'
+
 # context manager ensures the session is cleaned up
 with IMAPClient(host="imap.163.com") as client:
-    client.login('canrad7@163.com', 'ZWUXENDBVAWOHIZI')
+    client.login(username, pwd)
     client.select_folder('INBOX')
 
     # search criteria are passed in a straightforward way
