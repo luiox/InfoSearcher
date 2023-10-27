@@ -1,5 +1,6 @@
 import base64
 import email
+import os
 import poplib
 import re
 import os
@@ -68,7 +69,7 @@ def parse_msg(subject, message):  # 解析邮件内容
             full_filename = "email_context/" + filename
             write_file_with_directory(full_filename, content_str)
 
-        except:
+        except UnicodeDecodeError:
             print('解码邮件错误')
 
             # 如果主类型为multipart，递归
@@ -123,10 +124,3 @@ class EmailUtil:
                     print("是账单!")
                     parse_msg(decoded_subject, msg)
             print('--------------------')
-
-
-if __name__ == '__main__':
-    # 授权码 ZWUXENDBVAWOHIZI
-    e = EmailUtil('canrad7@163.com', 'ZWUXENDBVAWOHIZI')
-    e.login()
-    e.do()
