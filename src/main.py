@@ -4,7 +4,7 @@ from src.email_mod.email_163 import EmailUtil
 
 if __name__ == '__main__':
     # 授权码 ZWUXENDBVAWOHIZI
-    e = EmailUtil('canrad7@163.com', 'ZWUXENDBVAWOHIZI')
+    e = EmailUtil('canrad7@163.com', 'FICKHNLGUZAZDIMD')
     e.login()
     e.do()
     p = DataParser()

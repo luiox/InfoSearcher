@@ -8,6 +8,8 @@ from email import parser
 from email.header import decode_header
 from email.parser import Parser
 
+import chardet
+
 
 def remove_invalid_chars(filename):
     # 定义需要去除的非法字符正则表达式模式
@@ -19,7 +21,7 @@ def remove_invalid_chars(filename):
     return cleaned_filename
 
 
-def write_file_with_directory(path, content, way='w'):
+def write_file_with_directory(path, content, way='w+'):
     # 检查路径中的目录是否存在，如果不存在则创建
     directory = os.path.dirname(path)
     if not os.path.exists(directory):
@@ -55,6 +57,7 @@ def parse_msg(subject, message):  # 解析邮件内容
         write_file_with_directory(filename, data, 'wb')
         return filename
 
+    content_str =  ''
     # 如果主类型为text，根据编码方式解析
     content_charset = message.get_content_charset()
     print('content_charset:', content_charset)
@@ -76,6 +79,7 @@ def parse_msg(subject, message):  # 解析邮件内容
     elif maintype == 'multipart':
         for message_part in message.get_payload():
             parse_msg(subject, message_part)
+
     return
 
 
@@ -113,8 +117,13 @@ class EmailUtil:
             if subject:
                 # 解码主题
                 decoded_subject = decode_header(subject)[0][0]
-                if isinstance(decoded_subject, bytes):
-                    decoded_subject = decoded_subject.decode("utf-8")
+                # result = chardet.detect(decoded_subject)
+                # encoding = result['encoding']
+                # print(encoding)
+                # 解码字节串
+                decoded_subject = decoded_subject.decode('gbk')
+                # if isinstance(decoded_subject, bytes):
+                #   decoded_subject = decoded_subject.decode("utf-8")
                 print("主题:", decoded_subject)
                 # 正则匹配是不是账单
                 words = ["银行", "账单"]
@@ -122,5 +131,12 @@ class EmailUtil:
                 match = re.search(pattern, decoded_subject)
                 if match:
                     print("是账单!")
+                    print(decoded_subject)
                     parse_msg(decoded_subject, msg)
             print('--------------------')
+
+if __name__ == '__main__':
+    # 授权码 ZWUXENDBVAWOHIZI
+    e = EmailUtil('canrad7@163.com', 'ZWUXENDBVAWOHIZI')
+    e.login()
+    e.do()
